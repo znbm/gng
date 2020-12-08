@@ -5,6 +5,8 @@
 // In this case, initializes USART 2.
 void init( void )
 {
+	// Initialize USART 2.
+
 	// To correctly read data from FLASH memory, the number of wait states (LATENCY)
 	// must be correctly programmed according to the frequency of the CPU clock
 	// (HCLK) and the supply voltage of the device.		
@@ -119,15 +121,29 @@ void init( void )
 	// Verify the UART is ready.
 	while ( ( USART2->ISR & USART_ISR_TEACK ) == 0 );
 	while ( ( USART2->ISR & USART_ISR_REACK ) == 0 );
+
+
 }
 
 // Seeds the PRNG.
 void seed()
 {
-	random_a = 0;
-	random_b = 0;
-	random_c = 0;
-	for ( volatile int i = 0; i < 10; i++ ) random32(); // burn subpar values
+	// Enable the RNG.
+	RNG->CR |= RNG_CR_RNGEN;
+
+	// Wait paranoidly for the RNG to settle.
+	for ( volatile int i = 0; i < 100; i++ );
+
+	// Assign values.
+	while ( ( RNG->CR & RNG_CR_DRDY ) == 0 );
+	random_a = RNG->DR;
+	while ( ( RNG->CR & RNG_CR_DRDY ) == 0 );
+	random_b = RNG->DR;
+	while ( ( RNG->CR & RNG_CR_DRDY ) == 0 );
+	random_c = RNG->DR;
+
+	// Burn subpar PRNG values.
+	for ( volatile int i = 0; i < 10; i++ ) random32();
 }
 
 // Prints the null-terminated ASCII string `s` to a TTY somewhere.
@@ -139,7 +155,7 @@ void print( const char * s )
 	
 		USART2->TDR = c;
 	
-		volatile int delay = 43000;
+		volatile int delay = 2000;
 		while ( delay ) delay--;
 	
 		// Why do we do this?
