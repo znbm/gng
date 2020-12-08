@@ -130,23 +130,21 @@ int main( void )
 	seed();
 	dungen();
 
-#if 0+1
 	for ( int i = 0; i < 32; i++ )
 	{
 		for ( int j = 0; j < 32; j++ )
 		{
 			switch ( tilemap[ j ][ i ] )
 			{
-				case TILE_FLOOR: printf( "\033[30;100m  " ); break;
-				case TILE_WALL: printf( "\033[37;107m::" ); break;
-				case TILE_WATER: printf( "\033[36;104m~~" ); break;
-				case TILE_LAVA: printf( "\033[93;101m~~" ); break;
-				case TILE_ACID: printf( "\033[33;42m~~" ); break;
+				case TILE_FLOOR: print( "\033[30;100m  " ); break;
+				case TILE_WALL: print( "\033[37;107m::" ); break;
+				case TILE_WATER: print( "\033[36;104m~~" ); break;
+				case TILE_LAVA: print( "\033[93;101m~~" ); break;
+				case TILE_ACID: print( "\033[33;42m~~" ); break;
 			}
 		}
-		printf( "\033[0m\n" );
+		print( "\033[0m\n" );
 	}
-#endif
 }
 
 

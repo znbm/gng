@@ -153,7 +153,7 @@ void print( const char * s )
 	{
 		while ( !( USART2->ISR & USART_ISR_TXE ) ); // wait until the UART empties
 	
-		USART2->TDR = c;
+		USART2->TDR = *s;
 	
 		volatile int delay = 2000;
 		while ( delay ) delay--;
