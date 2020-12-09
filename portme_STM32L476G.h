@@ -125,6 +125,33 @@ void init( void )
 
 }
 
+// Seeds the PRNG.
+void seed()
+{
+	// Disable RNG validation and interrputs.
+	RNG->CR = 0;
+
+	// Enable the clock to the RNG.
+	RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
+
+	// Enable the RNG.
+	RNG->CR |= RNG_CR_RNGEN;
+
+	// Wait paranoidly for the RNG to settle.
+	for ( volatile int i = 0; i < 100; i++ );
+
+	// Assign values.
+	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
+	random_a = RNG->DR;
+	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
+	random_b = RNG->DR;
+	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
+	random_c = RNG->DR;
+
+	// Burn subpar PRNG values.
+	for ( volatile int i = 0; i < 10; i++ ) random32();
+}
+
 // Prints the null-terminated ASCII string `s` to a TTY somewhere.
 void print( const char * s )
 {
@@ -141,31 +168,6 @@ void print( const char * s )
 		while ( !( USART2->ISR & USART_ISR_TC ) );
 		USART2->ISR &= ~USART_ISR_TC;
 	}
-}
-
-// Seeds the PRNG.
-void seed()
-{
-	// Disable RNG validation and interrputs.
-	RNG->CR = 0;
-
-	// Enable the RNG.
-	RNG->CR |= RNG_CR_RNGEN;
-
-	// Wait paranoidly for the RNG to settle.
-	for ( volatile int i = 0; i < 100; i++ );
-
-	if ( RNG->SR & RNG_SR_SECS || RNG->SR & RNG_SR_CECS ) print( "Clock error!" );
-	// Assign values.
-	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
-	random_a = RNG->DR;
-	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
-	random_b = RNG->DR;
-	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
-	random_c = RNG->DR;
-
-	// Burn subpar PRNG values.
-	for ( volatile int i = 0; i < 10; i++ ) random32();
 }
 
 // Blocks until a button is pressed down somewhere, then returns that movement.
