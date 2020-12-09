@@ -22,5 +22,10 @@ enum { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT } getmove( void )
 {
 }
 
+//
+void framedelay( void )
+{
+}
+
 
 

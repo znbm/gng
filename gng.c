@@ -145,6 +145,15 @@ int main( void )
 		}
 		print( "\033[0m\n" );
 	}
+
+	static char buf[ 64 ] = { '\0' };
+	sprintf( buf, "\033[%u;%uH", x, y );
+	for ( ;; )
+	{
+		sprintf( buf, "%x\n\r", GPIO_IDR );
+		print( buf );
+		framedelay();
+	}
 }
 
 

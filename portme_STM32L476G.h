@@ -123,11 +123,21 @@ void init( void )
 	while ( ( USART2->ISR & USART_ISR_REACK ) == 0 );
 
 
+	// Initialize joystick input.
+
+	// Enable the clock to GPIO Port A.
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
+
+	// Set input mode.
+	RCC->GPIO_MODER &= ~GPIO_MODER_MODE0;
+
 }
 
 // Seeds the PRNG.
 void seed()
 {
+#if 0 // Our STM32L476 doesn't have a hardware random number generator.
+
 	// Disable RNG validation and interrputs.
 	RNG->CR = 0;
 
@@ -150,6 +160,9 @@ void seed()
 
 	// Burn subpar PRNG values.
 	for ( volatile int i = 0; i < 10; i++ ) random32();
+
+#elif 1 // Use press-to-start instead.
+#endif
 }
 
 // Prints the null-terminated ASCII string `s` to a TTY somewhere.
@@ -175,5 +188,9 @@ enum { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT } getmove( void )
 {
 }
 
+void framedelay( void )
+{
+	return;
+}
 
 
