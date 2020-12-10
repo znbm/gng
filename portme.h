@@ -3,6 +3,11 @@ void init( void )
 {
 }
 
+// Prints the null-terminated ASCII string `s` to a TTY somewhere.
+void print( const char * s )
+{
+}
+
 // Seeds the PRNG.
 void seed()
 {
@@ -12,18 +17,8 @@ void seed()
 	for ( volatile int i = 0; i < 10; i++ ) random32(); // burn subpar values
 }
 
-// Prints the null-terminated ASCII string `s` to a TTY somewhere.
-void print( const char * s )
-{
-}
-
 // Blocks until a button is pressed down somewhere, then returns that movement.
-enum { MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT } getmove( void )
-{
-}
-
-//
-void framedelay( void )
+enum move getmove( void )
 {
 }
 

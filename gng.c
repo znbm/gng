@@ -8,6 +8,15 @@
 #define TILE_ACID 4
 unsigned char tilemap[ 32 ][ 32 ]; // zeroed, i.e. filled with floor
 
+enum move
+{
+	MOVE_UP,
+	MOVE_DOWN,
+	MOVE_LEFT,
+	MOVE_RIGHT,
+	MOVE_QUIT
+};
+
 // Generates a pseudorandom 32-bit bit value.
 // Implements the public-domain 'sfc32' PRNG from
 // version 0.94 of Chris Doty-Humphrey's PractRand. 
@@ -123,6 +132,17 @@ void dungen()
 	*/
 }
 
+// Moves the player, advances the game, and updates the screen.
+unsigned int px, py; // player coordinates
+void move( enum move m )
+{
+	     if ( m == MOVE_UP )    print( "up\n\r" ); // py++; 
+	else if ( m == MOVE_DOWN )  print( "down\n\r" ); // py--;
+	else if ( m == MOVE_LEFT )  print( "left\n\r" ); // px--;
+	else if ( m == MOVE_RIGHT ) print( "right\n\r" ); // px++;
+
+}
+
 #include <stdio.h>
 int main( void )
 {
@@ -137,22 +157,20 @@ int main( void )
 			switch ( tilemap[ j ][ i ] )
 			{
 				case TILE_FLOOR: print( "\033[30;100m  " ); break;
-				case TILE_WALL: print( "\033[37;107m::" ); break;
+				case TILE_WALL:  print( "\033[37;107m::" ); break;
 				case TILE_WATER: print( "\033[36;104m~~" ); break;
-				case TILE_LAVA: print( "\033[93;101m~~" ); break;
-				case TILE_ACID: print( "\033[33;42m~~" ); break;
+				case TILE_LAVA:  print( "\033[93;101m~~" ); break;
+				case TILE_ACID:  print( "\033[33;42m~~" );  break;
 			}
 		}
 		print( "\033[0m\n" );
 	}
 
-	static char buf[ 64 ] = { '\0' };
-	sprintf( buf, "\033[%u;%uH", x, y );
+	unsigned int px = 2, py = 2;
+
 	for ( ;; )
 	{
-		sprintf( buf, "%x\n\r", GPIO_IDR );
-		print( buf );
-		framedelay();
+		move( getmove() );
 	}
 }
 
