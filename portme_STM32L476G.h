@@ -1,5 +1,6 @@
-#include <stdio.h> // sprintf
 #include "stm32l476xx.h"
+
+#define NLCR
 
 // Sets up any platform-specific facilities.
 // In this case, initializes USART 2.

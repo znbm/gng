@@ -25,6 +25,8 @@ enum move
 	MOVE_BAD
 };
 
+unsigned int px, py; // player coordinates
+
 // Generates a pseudorandom 32-bit bit value.
 // Implements the public-domain 'sfc32' PRNG from
 // version 0.94 of Chris Doty-Humphrey's PractRand. 
@@ -93,7 +95,7 @@ struct rect
 void dungen()
 {
 	// A full, "heap-style" binary tree representing our bsp rectangles.
-	struct rect b[ 1 + 1 + 2 + 4 + 8 + 16 ];
+	struct rect b[ 1 + 1 + 2 + 4 + 8 + 16 + 10 ]; // i don't even know how many entries this has anymore
 
 	// Initialize the tree to depth 1. To simplify the math, entry zero is unused.
 	b[ 0 ].tlx = b[ 0 ].tly = b[ 0 ].brx = b[ 0 ].bry = 0;
@@ -110,7 +112,7 @@ void dungen()
 	}
 
 	// Create interior walls.
-	for ( unsigned int i = 1; i < 1 + 2 + 4 + 8; i++ )
+	for ( unsigned int i = 1; i <= 1 + 2 + 4 + 8; i++ )
 	{
 		// Height and width of the current rectangle.
 		unsigned int w = b[ i ].brx - b[ i ].tlx;
@@ -150,6 +152,28 @@ void dungen()
 		b[ 2 * i + 1 ].tly = vcut ? b[ i ].tly : r + 1;
 	}
 
+	///*
+	// Create pools of liquid.
+	for ( unsigned int i = 1 + 1 + 2 + 4 + 8; i < 1 + 1 + 2 + 4 + 8 + 16; i++ ) // for every leaf / individual room...
+	{
+		enum tile liquid;
+		unsigned int r7 = rng( 0, 7 );
+		if ( r7 < 4 ) continue;
+		else if ( r7 == 4 ) liquid = TILE_WATER;
+		else if ( r7 == 5 ) liquid = TILE_LAVA;
+		else if ( r7 == 6 ) liquid = TILE_ACID;
+
+		if ( b[ i / 2 ].tlx == 0 ) continue; // this is beyond a leaf node, skip it
+
+		// Draw the pools.
+		for ( unsigned int ix = b[ i ].tlx; ix <= b[ i ].brx; ix++ )
+		for ( unsigned int iy = b[ i ].tly; iy <= b[ i ].bry; iy++ )
+		{
+			tilemap[ ix ][ iy ] = liquid;
+		}
+	}
+	//*/
+
 	// Create doorways.
 	/*
 	for ( unsigned int i = 1 + 2 + 4 + 8 - 1; i >= 2; i-- )
@@ -161,6 +185,12 @@ void dungen()
 		else if ( b[ i ].brx != b[ i / 2 ].brx ) // b[ i ] was formed by a vertical cut
 	}
 	*/
+
+	// Finally, place the player somewhere safe.
+	tilemap[ 2 ][ 2 ] = TILE_FLOOR;
+	unsigned int psx, psy;
+	do { psx = rng( 1, 31 ); psy = rng( 1, 31 ); } while ( tilemap[ psx ][ psy ] != TILE_FLOOR );
+	px = psx; py = psy;
 }
 
 // Moves the cursor to ( `x`, `y` ).
@@ -199,7 +229,6 @@ void _Noreturn quit( void )
 
 // Moves the player, advances the game, and updates the screen.
 // Returns whether the move was valid or not; possibly ends the game.
-unsigned int px = 2, py = 2; // player coordinates
 _Bool move( enum move m )
 {
 	if ( m == MOVE_BAD ) return 0;
