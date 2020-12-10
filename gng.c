@@ -152,7 +152,6 @@ void dungen()
 		b[ 2 * i + 1 ].tly = vcut ? b[ i ].tly : r + 1;
 	}
 
-	///*
 	// Create pools of liquid.
 	for ( unsigned int i = 1 + 1 + 2 + 4 + 8; i < 1 + 1 + 2 + 4 + 8 + 16; i++ ) // for every leaf / individual room...
 	{
@@ -163,7 +162,7 @@ void dungen()
 		else if ( r7 == 5 ) liquid = TILE_LAVA;
 		else if ( r7 == 6 ) liquid = TILE_ACID;
 
-		if ( b[ i / 2 ].tlx == 0 ) continue; // this is beyond a leaf node, skip it
+		if ( b[ i / 2 ].tlx == 0 ) continue; // nonexistent room, skip it
 
 		// Draw the pools.
 		for ( unsigned int ix = b[ i ].tlx; ix <= b[ i ].brx; ix++ )
@@ -172,7 +171,6 @@ void dungen()
 			tilemap[ ix ][ iy ] = liquid;
 		}
 	}
-	//*/
 
 	// Create doorways.
 	/*
