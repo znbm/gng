@@ -180,10 +180,13 @@ void seed()
 	for ( volatile int i = 0; i < 10; i++ ) random32();
 
 #elif 1 // Use press-to-start instead.
-	uint32_t old = 0;
 	print( "Press a button to begin...\n\r" );
-	
-
+	while ( !( USART2->ISR & USART_ISR_RXNE ) ) // gather entropy from player
+	{
+		random_a++;
+		random_b++;
+		random_c++;
+	}
 #endif
 }
 
