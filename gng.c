@@ -1,11 +1,18 @@
 #include <stdint.h>
 
 // The dungeon is a 32x32 tilemap.
-#define TILE_FLOOR 0
-#define TILE_WALL 1
-#define TILE_WATER 2
-#define TILE_LAVA 3
-#define TILE_ACID 4
+enum tile
+{
+	// exist in the tilemap
+	TILE_FLOOR,
+	TILE_WALL,
+	TILE_WATER,
+	TILE_LAVA,
+	TILE_ACID,
+
+	// only for drawing
+	TILE_PLAYER = 128
+};
 unsigned char tilemap[ 32 ][ 32 ]; // zeroed, i.e. filled with floor
 
 enum move
@@ -14,34 +21,35 @@ enum move
 	MOVE_DOWN,
 	MOVE_LEFT,
 	MOVE_RIGHT,
-	MOVE_QUIT
+	MOVE_QUIT,
+	MOVE_BAD
 };
 
 // Generates a pseudorandom 32-bit bit value.
 // Implements the public-domain 'sfc32' PRNG from
 // version 0.94 of Chris Doty-Humphrey's PractRand. 
-static uint32_t random_a, random_b, random_c, random_ctr = 1; // global to allow seeding
-uint32_t random32( void )
+static uint32_t rng_a, rng_b, rng_c, rng_ctr = 1; // global to allow seeding
+uint32_t rng32( void )
 {
-	uint32_t r = random_a + random_b + random_ctr;
+	uint32_t r = rng_a + rng_b + rng_ctr;
 	
-	random_a = random_b ^ ( random_b >> 9 );
-	random_b = random_c + ( random_c << 3 );
-	random_c = ( ( random_c << 21 ) | ( random_c >> ( 32 - 21 ) ) ) + r;
+	rng_a = rng_b ^ ( rng_b >> 9 );
+	rng_b = rng_c + ( rng_c << 3 );
+	rng_c = ( ( rng_c << 21 ) | ( rng_c >> ( 32 - 21 ) ) ) + r;
 
-	random_ctr += 1;
+	rng_ctr += 1;
 	return r;
 }
 
 // Debiased modulo method for an unbiased random number between `lo` inclusive and `hi` exclusive.
-uint32_t random( uint32_t lo, uint32_t hi )
+uint32_t rng( uint32_t lo, uint32_t hi )
 {
 	uint32_t range = hi - lo;
 	
 	uint32_t x, r;
 	do
 	{
-		x = random32();
+		x = rng32();
 		r = x % range;
 	}
 	while ( x - r > -range );
@@ -49,8 +57,31 @@ uint32_t random( uint32_t lo, uint32_t hi )
 	return r + lo;
 }
 
+// Returns a pointer to a null-terminated string containing `n` written in decimal.
+// If `n` == 0, the string is "0"; otherwise, it has no leading zeroes.
+char * uintstr( uint32_t n )
+{
+	static char s[ 11 ] = { '\0' }; // 11 bytes can store "4294967295\0"
+
+	// Precompute the number of digits in `n` so we can avoid leading zeroes.
+	int len = 1;
+	for ( int ncpy = n / 10u; ncpy > 0u; len++ ) ncpy /= 10u;
+	
+	// Populate the first `len` characters with `n`'s digits.
+	for ( int i = len - 1; i >= 0; i-- )
+	{
+		s[ i ] = '0' + n % 10u;
+		n /= 10u;
+	}
+
+	// Nullify the rest of the string.
+	for ( int i = 10; i >= len; i-- ) s[ i ] = '\0';
+
+	return s;
+}
+
 // Nonportable utilities.
-#include "portme.h"
+#include "portme_unix.h"
 
 struct rect
 {
@@ -95,12 +126,12 @@ void dungen()
 		}
 		else if ( h <= SMALLRECT ) vcut = 1;
 		else if ( w <= SMALLRECT ) vcut = 0; 
-		else vcut = random( 0, h + w ) < w; // random, but biased towards making squares
+		else vcut = rng( 0, h + w ) < w; // random, but biased towards making squares
 
 		// Choose a random cut posititon withing the innermost 1/2 of the rectangle.
 		unsigned int lo = vcut ? b[ i ].tlx + w / 4 : b[ i ].tly + h / 4;
 		unsigned int hi = vcut ? b[ i ].brx - w / 4 : b[ i ].bry - h / 4;
-		unsigned int r = random( lo, hi );
+		unsigned int r = rng( lo, hi );
 
 		// Draw the cut.
 		if ( vcut ) for ( unsigned int j = b[ i ].tly; j <= b[ i ].bry; j++ ) tilemap[ r ][ j ] = TILE_WALL;
@@ -132,46 +163,100 @@ void dungen()
 	*/
 }
 
-// Moves the player, advances the game, and updates the screen.
-unsigned int px, py; // player coordinates
-void move( enum move m )
+// Moves the cursor to ( `x`, `y` ).
+void movecursor( unsigned int x, unsigned int y )
 {
-	     if ( m == MOVE_UP )    print( "up\n\r" ); // py++; 
-	else if ( m == MOVE_DOWN )  print( "down\n\r" ); // py--;
-	else if ( m == MOVE_LEFT )  print( "left\n\r" ); // px--;
-	else if ( m == MOVE_RIGHT ) print( "right\n\r" ); // px++;
-
+	print( "\033[" );
+	print( uintstr( y + 1 ) );
+	print( ";" );
+	print( uintstr( x * 2 + 1 ) );
+	print( "H" );
 }
 
-#include <stdio.h>
+// Draws the tile `t` at the cursor.
+void drawtile( enum tile t )
+{
+	switch ( t )
+	{
+		case TILE_FLOOR: print( "\033[30;100m  \033[0m" ); return;
+		case TILE_WALL:  print( "\033[37;107m::\033[0m" ); return;
+		case TILE_WATER: print( "\033[36;104m~~\033[0m" ); return;
+		case TILE_LAVA:  print( "\033[93;101m~~\033[0m" ); return;
+		case TILE_ACID:  print( "\033[33;42m~~\033[0m" );  return;
+		
+		case TILE_PLAYER: print( "\033[34;106m@@\033[0m" );  return;
+	}
+}
+
+// Ends the game.
+// TODO
+#include <stdlib.h>
+void _Noreturn quit( void )
+{
+	print( "\033[2J\033[H\033[?25h\n\r" ); // clear screen, move cursor to origin, show cursor
+	exit( 0 );
+}
+
+// Moves the player, advances the game, and updates the screen.
+// Returns whether the move was valid or not; possibly ends the game.
+unsigned int px = 2, py = 2; // player coordinates
+_Bool move( enum move m )
+{
+	if ( m == MOVE_BAD ) return 0;
+	
+	// Examine the player's prospective move.
+	unsigned int ppx = px, ppy = py;
+	if ( m == MOVE_QUIT )       quit();
+	else if ( m == MOVE_UP )    ppy--; 
+	else if ( m == MOVE_DOWN )  ppy++;
+	else if ( m == MOVE_LEFT )  ppx--;
+	else if ( m == MOVE_RIGHT ) ppx++;
+	else quit();
+
+	switch ( tilemap[ ppx ][ ppy ] )
+	{
+		case TILE_WALL: return 0; // invalid move, try again
+		
+		case TILE_WATER: case TILE_LAVA: case TILE_ACID: quit(); // rip
+
+		case TILE_FLOOR: // okay move
+			
+			// Hide existing player.
+			movecursor( px, py );
+			drawtile( tilemap[ px ][ py ] );
+		
+			px = ppx; py = ppy;
+			
+			movecursor( px, py );
+			drawtile( TILE_PLAYER );
+			return 1;
+	}
+}
+
 int main( void )
 {
 	init();
 	seed();
 	dungen();
+	print( "\033[2J\033[H\033[?25l" ); // clear screen, move cursor to origin, hide cursor
 
+	// Draw the initial dungeon.
 	for ( int i = 0; i < 32; i++ )
 	{
-		for ( int j = 0; j < 32; j++ )
-		{
-			switch ( tilemap[ j ][ i ] )
-			{
-				case TILE_FLOOR: print( "\033[30;100m  " ); break;
-				case TILE_WALL:  print( "\033[37;107m::" ); break;
-				case TILE_WATER: print( "\033[36;104m~~" ); break;
-				case TILE_LAVA:  print( "\033[93;101m~~" ); break;
-				case TILE_ACID:  print( "\033[33;42m~~" );  break;
-			}
-		}
+		for ( int j = 0; j < 32; j++ ) drawtile( tilemap[ j ][ i ] );
 		print( "\033[0m\n" );
+#ifdef NLCR
+		print( "\r" );
+#endif
 	}
-
-	unsigned int px = 2, py = 2;
+	
+	// Draw the initial player.
+	movecursor( px, py );
+	drawtile( TILE_PLAYER );	
 
 	for ( ;; )
 	{
 		move( getmove() );
 	}
 }
-
 

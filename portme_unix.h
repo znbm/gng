@@ -7,7 +7,7 @@ void init( void )
 #include <stdio.h>
 void print( const char * s )
 {
-	printf( "%s\n", s );
+	printf( "%s", s );
 }
 
 // Seeds the PRNG.
@@ -15,18 +15,26 @@ void print( const char * s )
 void seed()
 {
 	for ( volatile int v = 0; v < 100; v++ ); // wait so `time` doesn't yield zero
-	random_a = time( NULL );
-	random_b = time( NULL );
-	random_c = time( NULL );
-	for ( volatile int i = 0; i < 10; i++ ) random32(); // burn subpar values
+	rng_a = time( NULL );
+	rng_b = time( NULL );
+	rng_c = time( NULL );
+	for ( volatile int i = 0; i < 10; i++ ) rng32(); // burn subpar values
 }
 
 // Blocks until a button is pressed down somewhere, then returns that movement.
-#define _XOPEN_SOURCE 500
-#include <unistd.h>
 enum move getmove( void )
 {
-	usleep( 1000000 ); // 1 sec
+	char e = getchar();
+
+	switch ( e )
+	{
+		case 'w': case 'k': return MOVE_UP;
+		case 'a': case 'h': return MOVE_LEFT;
+		case 's': case 'j': return MOVE_DOWN;
+		case 'd': case 'l': return MOVE_RIGHT;
+		case 'q': return MOVE_QUIT;
+		default:  return MOVE_BAD;
+	}
 }
 
 
