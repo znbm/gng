@@ -179,7 +179,7 @@ void seed()
 	for ( volatile int i = 0; i < 10; i++ ) random32();
 
 #elif 1 // Use press-to-start instead.
-	uint32_t old = 
+	uint32_t old = 0;
 	print( "Press a button to begin...\n\r" );
 	
 
@@ -189,24 +189,14 @@ void seed()
 // Blocks until a button is pressed down somewhere, then returns that movement.
 enum move getmove( void )
 {
-	static char buf[ 64 ] = { '\0' };
-	for ( ;; )
+	while ( !( USART2->ISR & USART_ISR_RXNE ) ); // wait until the UART fills
+	switch ( USART2->RDR & 0x7F ) // get ASCII keypress
 	{
-		sprintf( buf, "%x\n\r", GPIOA->IDR );
-		print( buf );
-		framedelay();
-	}
-
-	uint32_t oldbuttons, newbuttons = GPIOA->IDR & 0xF;
-	for ( ;; )
-	{
-		oldbuttons = newbuttons;
-		for ( ; newbuttons == oldbuttons; newbuttons = GPIOA->IDR & 0xF );
-
-		if ( ( newbuttons & 0x1 ) != 0 && ( oldbuttons & 0x1 ) == 0 ) return MOVE_UP;
-		if ( ( newbuttons & 0x2 ) != 0 && ( oldbuttons & 0x2 ) == 0 ) return MOVE_DOWN;
-		if ( ( newbuttons & 0x4 ) != 0 && ( oldbuttons & 0x4 ) == 0 ) return MOVE_LEFT;
-		if ( ( newbuttons & 0x8 ) != 0 && ( oldbuttons & 0x8 ) == 0 ) return MOVE_RIGHT;
+		case 'w': return MOVE_UP;
+		case 'a': return MOVE_LEFT;
+		case 's': return MOVE_DOWN;
+		case 'd': return MOVE_RIGHT;
+		case 'q': return MOVE_QUIT;
 	}
 }
 
