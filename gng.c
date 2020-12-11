@@ -3,15 +3,19 @@
 // The dungeon is a 32x32 tilemap.
 enum tile
 {
-	// exist in the tilemap
 	TILE_FLOOR,
 	TILE_WALL,
-	TILE_WATER,
+
+	// Hazards
+	TILE_WATER = 32,
 	TILE_LAVA,
 	TILE_ACID,
+	TILE_SPIKES,
+	TILE_HOLE,
 
-	// only for drawing
-	TILE_PLAYER = 128
+	TILE_MONIES = 64,
+
+	TILE_PLAYER = 128 // only for drawing
 };
 unsigned char tilemap[ 32 ][ 32 ]; // zeroed, i.e. filled with floor
 
@@ -152,43 +156,63 @@ void dungen()
 		b[ 2 * i + 1 ].tly = vcut ? b[ i ].tly : r + 1;
 	}
 
-	// Create pools of liquid.
+	/*
+	// Create doorways.
+	for ( unsigned int i = 1 + 1 + 2 + 4 + 8 + 16 - 1; i > 1 + 1; i -= 2 ) // traverse back up the tree by pairs
+	{
+		if ( b[ i ].tlx == 0 ) continue; // nonexistent room, skip it
+
+		if ( b[ i ].tlx  ) 
+
+	}
+	*/
+
+	// Create pools of hazards.
 	for ( unsigned int i = 1 + 1 + 2 + 4 + 8; i < 1 + 1 + 2 + 4 + 8 + 16; i++ ) // for every leaf / individual room...
 	{
-		enum tile liquid;
-		unsigned int r7 = rng( 0, 7 );
-		if ( r7 < 4 ) continue;
-		else if ( r7 == 4 ) liquid = TILE_WATER;
-		else if ( r7 == 5 ) liquid = TILE_LAVA;
-		else if ( r7 == 6 ) liquid = TILE_ACID;
+		enum tile liquid = (enum tile)( rng( 32, 32 + 5 ) ); // pick a random hazard
 
 		if ( b[ i / 2 ].tlx == 0 ) continue; // nonexistent room, skip it
 
+		// Calculate pool sizes.
+		unsigned int ptlx = rng( b[ i ].tlx, b[ i ].brx );
+		unsigned int pbrx = rng( b[ i ].tlx, b[ i ].brx );
+		unsigned int ptly = rng( b[ i ].tly, b[ i ].bry );
+		unsigned int pbry = rng( b[ i ].tly, b[ i ].bry );
+
+		// If our random bottom rights are before our top lefts,
+		// or are even close to being so,
+		// just fill the whole dimension / room.
+		if ( pbrx < ptlx + 1 )
+		{
+			ptlx = b[ i ].tlx;
+			pbrx = b[ i ].brx;
+		}
+		if ( pbry < ptly + 1 )
+		{
+			ptly = b[ i ].tly;
+			pbry = b[ i ].bry;
+		}
+
 		// Draw the pools.
-		for ( unsigned int ix = b[ i ].tlx; ix <= b[ i ].brx; ix++ )
-		for ( unsigned int iy = b[ i ].tly; iy <= b[ i ].bry; iy++ )
+		for ( unsigned int ix = ptlx; ix <= pbrx; ix++ )
+		for ( unsigned int iy = ptly; iy <= pbry; iy++ )
 		{
 			tilemap[ ix ][ iy ] = liquid;
 		}
 	}
 
-	// Create doorways.
-	/*
-	for ( unsigned int i = 1 + 2 + 4 + 8 - 1; i >= 2; i-- )
+	// Finally, place monies and the player somewhere safe.
+	for ( unsigned int i = 0; i < 16 + 1; i++ )
 	{
-		if ( b[ i ].tlx != b[ i / 2 ].tlx ) tilemap[  ]
+		unsigned int sx, sy;
+		do { sx = rng( 1, 31 ); sy = rng( 1, 31 ); } while ( tilemap[ sx ][ sy ] != TILE_FLOOR );
+		if ( i == 16 ) // place player
 		{
-
+			px = sx; py = sy;
 		}
-		else if ( b[ i ].brx != b[ i / 2 ].brx ) // b[ i ] was formed by a vertical cut
+		else tilemap[ sx ][ sy ] = TILE_MONIES; // place monies
 	}
-	*/
-
-	// Finally, place the player somewhere safe.
-	tilemap[ 2 ][ 2 ] = TILE_FLOOR;
-	unsigned int psx, psy;
-	do { psx = rng( 1, 31 ); psy = rng( 1, 31 ); } while ( tilemap[ psx ][ psy ] != TILE_FLOOR );
-	px = psx; py = psy;
 }
 
 // Moves the cursor to ( `x`, `y` ).
@@ -206,11 +230,15 @@ void drawtile( enum tile t )
 {
 	switch ( t )
 	{
-		case TILE_FLOOR: print( "\033[30;100m  \033[0m" ); return;
-		case TILE_WALL:  print( "\033[37;107m::\033[0m" ); return;
-		case TILE_WATER: print( "\033[36;104m~~\033[0m" ); return;
-		case TILE_LAVA:  print( "\033[93;101m~~\033[0m" ); return;
-		case TILE_ACID:  print( "\033[33;42m~~\033[0m" );  return;
+		case TILE_FLOOR:  print( "\033[30;100m  \033[0m" ); return;
+		case TILE_WALL:   print( "\033[37;107m::\033[0m" ); return;
+		case TILE_WATER:  print( "\033[36;104m~~\033[0m" ); return;
+		case TILE_LAVA:   print( "\033[93;101m~~\033[0m" ); return;
+		case TILE_ACID:   print( "\033[33;42m~~\033[0m" );  return;
+		case TILE_SPIKES: print( "\033[97;100m/\\\033[0m" ); return;
+		case TILE_HOLE:   print( "\033[30;40m  \033[0m" );  return;
+
+		case TILE_MONIES: print( "\033[93;100m$$\033[0m" ); return;
 		
 		case TILE_PLAYER: print( "\033[34;106m@@\033[0m" );  return;
 	}
@@ -219,7 +247,7 @@ void drawtile( enum tile t )
 // Ends the game.
 // TODO
 #include <stdlib.h>
-void _Noreturn quit( void )
+void /*_Noreturn*/ quit( void )
 {
 	print( "\033[2J\033[H\033[?25h\n\r" ); // clear screen, move cursor to origin, show cursor
 	exit( 0 );
@@ -246,6 +274,11 @@ _Bool move( enum move m )
 		
 		case TILE_WATER: case TILE_LAVA: case TILE_ACID: quit(); // rip
 
+		case TILE_MONIES:
+			tilemap[ ppx ][ ppy ] = TILE_FLOOR; // pick up
+			
+			// Fall through to TILE_FLOOR
+
 		case TILE_FLOOR: // okay move
 			
 			// Hide existing player.
@@ -263,6 +296,7 @@ _Bool move( enum move m )
 int main( void )
 {
 	init();
+	print( "\033[2J\033[H\033[?25l" ); // clear screen, move cursor to origin, hide cursor
 	seed();
 	dungen();
 	print( "\033[2J\033[H\033[?25l" ); // clear screen, move cursor to origin, hide cursor

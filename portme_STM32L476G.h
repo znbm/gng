@@ -170,11 +170,11 @@ void seed()
 
 	// Assign values.
 	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
-	random_a = RNG->DR;
+	rng_a = RNG->DR;
 	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
-	random_b = RNG->DR;
+	rng_b = RNG->DR;
 	while ( ( RNG->SR & RNG_SR_DRDY ) == 0 );
-	random_c = RNG->DR;
+	rng_c = RNG->DR;
 
 	// Burn subpar PRNG values.
 	for ( volatile int i = 0; i < 10; i++ ) random32();
@@ -183,9 +183,9 @@ void seed()
 	print( "Press a button to begin...\n\r" );
 	while ( !( USART2->ISR & USART_ISR_RXNE ) ) // gather entropy from player
 	{
-		random_a++;
-		random_b++;
-		random_c++;
+		rng_a++;
+		rng_b++;
+		rng_c++;
 	}
 #endif
 }
