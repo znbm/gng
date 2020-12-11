@@ -156,17 +156,6 @@ void dungen()
 		b[ 2 * i + 1 ].tly = vcut ? b[ i ].tly : r + 1;
 	}
 
-	/*
-	// Create doorways.
-	for ( unsigned int i = 1 + 1 + 2 + 4 + 8 + 16 - 1; i > 1 + 1; i -= 2 ) // traverse back up the tree by pairs
-	{
-		if ( b[ i ].tlx == 0 ) continue; // nonexistent room, skip it
-
-		if ( b[ i ].tlx  ) 
-
-	}
-	*/
-
 	// Create pools of hazards.
 	for ( unsigned int i = 1 + 1 + 2 + 4 + 8; i < 1 + 1 + 2 + 4 + 8 + 16; i++ ) // for every leaf / individual room...
 	{
@@ -199,6 +188,35 @@ void dungen()
 		for ( unsigned int iy = ptly; iy <= pbry; iy++ )
 		{
 			tilemap[ ix ][ iy ] = liquid;
+		}
+	}
+
+	// Create doorways.
+	for ( unsigned int i = 1 + 1 + 2 + 4 + 8 + 16 - 1; i > 1 + 1; i -= 2 ) // traverse back up the tree by pairs
+	{
+		if ( b[ i ].tlx == 0 || b[ i - 1 ].tlx == 0 ) continue; // nonexistent room, skip it
+
+		// Figure out which wall the room shares with its tree neighbor.
+		// Then, pick a doorway and draw a catwalk over any hazards.
+		if ( b[ i ].tly == b[ i - 1 ].bry + 2 ) // shared north wall
+		{
+			unsigned int d = rng( b[ i ].tlx, b[ i ].brx );
+			for ( unsigned int cwi = b[ i - 1 ].tly; cwi <= b[ i ].bry; cwi++ ) tilemap[ d ][ cwi ] = TILE_FLOOR;
+		}
+		if ( b[ i ].bry == b[ i - 1 ].tly - 2 ) // shared south wall
+		{
+			unsigned int d = rng( b[ i ].tlx, b[ i ].brx );
+			for ( unsigned int cwi = b[ i ].tly; cwi <= b[ i - 1 ].bry; cwi++ ) tilemap[ d ][ cwi ] = TILE_FLOOR;
+		}
+		if ( b[ i ].tlx == b[ i - 1 ].brx + 2 ) // shared east wall
+		{
+			unsigned int d = rng( b[ i ].tly, b[ i ].bry );
+			for ( unsigned int cwi = b[ i - 1 ].tlx; cwi <= b[ i ].brx; cwi++ ) tilemap[ cwi ][ d ] = TILE_FLOOR;
+		}
+		if ( b[ i ].brx == b[ i - 1 ].tlx - 2 ) // shared west wall
+		{
+			unsigned int d = rng( b[ i ].tly, b[ i ].bry );
+			for ( unsigned int cwi = b[ i ].tlx; cwi <= b[ i - 1 ].brx; cwi++ ) tilemap[ cwi ][ d ] = TILE_FLOOR;
 		}
 	}
 
